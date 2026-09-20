@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Daily</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#17110e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily">
+<link rel="apple-touch-icon" href="">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #17110e; --bg2: #2a1b12; --panel: #2b1f18;
+    --edge: rgba(255, 222, 170, .26); --ink: #f4e8d6; --muted: #c2ab90;
+    --bulb: #ffcf7a;
+  }
+  body[data-session="night"] {
+    --bg: #130f1f; --bg2: #241a3d; --panel: #231c36;
+    --edge: rgba(214, 196, 255, .27); --muted: #b9afdd;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { background: var(--bg); }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: "Trebuchet MS", "Lucida Grande", Verdana, sans-serif;
+    color: var(--ink); line-height: 1.5; -webkit-font-smoothing: antialiased;
+    background:
+      radial-gradient(120% 55% at 50% -8%, rgba(255, 190, 110, .14), transparent 60%),
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, .014) 0 2px, transparent 2px 4px),
+      var(--bg);
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding-bottom: calc(48px + env(safe-area-inset-bottom, 0px)); }
+  .spacer { height: calc(env(safe-area-inset-top, 0px) + 22px); }
+
+  .progress { position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; height: 4px; z-index: 5; background: rgba(0, 0, 0, .25); }
+  .progress i { display: block; height: 100%; width: 0; background: linear-gradient(#f7cd85, #d88b25); box-shadow: 0 0 8px rgba(242, 180, 90, .7); transition: width .35s; }
+
+  .hero { position: relative; height: 36vh; min-height: 220px; max-height: 330px; background-size: cover; background-position: center; overflow: hidden; }
+  .hero .fade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0, 0, 0, .4), transparent 32%, var(--bg) 100%); }
+  .hero.art {
+    background:
+      radial-gradient(70% 90% at 28% 22%, rgba(255, 190, 110, .38), transparent 60%),
+      radial-gradient(60% 70% at 82% 62%, rgba(200, 116, 106, .28), transparent 60%),
+      linear-gradient(160deg, var(--bg2), var(--bg));
+  }
+  .credit { position: absolute; right: 12px; bottom: 36px; z-index: 2; font-size: 11px; color: rgba(255, 255, 255, .75); text-decoration: none; text-shadow: 0 1px 2px #000; }
+
+  .sheet {
+    position: relative; margin: -30px 14px 0; padding: 24px 20px 20px; background: var(--panel); border-radius: 22px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .07);
+    outline: 1.5px dashed var(--edge); outline-offset: -8px; animation: rise .25s ease-out;
+  }
+  .sheet.flat { margin-top: 0; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  h1 { font-family: Georgia, "Times New Roman", serif; font-size: 27px; line-height: 1.2; margin: 0 0 6px; text-shadow: 0 1px 0 rgba(0, 0, 0, .5); }
+  h2 { font-family: Georgia, "Times New Roman", serif; font-size: 20px; margin: 0 0 2px; }
+  .hint { color: var(--muted); margin: 0 0 18px; font-size: 15px; }
+  .date { color: var(--muted); margin: 0 0 16px; }
+  .quote { font-family: Georgia, "Times New Roman", serif; font-style: italic; font-size: 21px; line-height: 1.45; margin: 4px 0 0; }
+  .by { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  .streak { color: var(--muted); font-size: 14px; margin: 14px 0 0; }
+
+  label { display: block; margin: 14px 0 6px; font-weight: bold; font-size: 15px; }
+  label:first-child { margin-top: 0; }
+  input, textarea {
+    width: 100%; font: inherit; font-size: 17px; color: var(--ink); background: rgba(0, 0, 0, .22);
+    border: 1px solid var(--edge); border-radius: 10px; padding: 11px 12px; box-shadow: inset 0 2px 5px rgba(0, 0, 0, .4);
+  }
+  textarea {
+    min-height: 168px; resize: vertical; line-height: 28px; background-attachment: local;
+    background-image: repeating-linear-gradient(transparent 0 27px, rgba(255, 222, 170, .13) 27px 28px);
+  }
+  input:focus, textarea:focus, button:focus-visible, a:focus-visible { outline: 2px solid #f2b45a; outline-offset: 2px; }
+
+  .line { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+  .num {
+    flex: 0 0 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(#f7cd85, #d88b25); color: #3a2208; font-weight: bold;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 1px 3px rgba(0, 0, 0, .5);
+  }
+  .appt { display: grid; grid-template-columns: 118px 1fr; gap: 8px; margin-bottom: 10px; }
+
+  .mood, .chips { display: flex; gap: 8px; margin-bottom: 16px; }
+  .mood button, .chips button {
+    flex: 1; border: 1px solid var(--edge); background: rgba(0, 0, 0, .22); color: var(--ink); border-radius: 12px; font: inherit;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, .35);
+  }
+  .mood button { font-size: 27px; padding: 8px 0; }
+  .chips button { padding: 10px 6px; font-size: 15px; }
+  .mood button.on, .chips button.on {
+    background: linear-gradient(#f7cd85, #d88b25); border-color: #a86a1a; color: #3a2208; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5);
+  }
+
+  .btn {
+    display: block; width: 100%; padding: 14px; border-radius: 999px; font: inherit; font-size: 17px; font-weight: bold; color: #3a2208;
+    background: linear-gradient(#f7cd85 0%, #eba53f 48%, #d88b25 52%, #e6a03d 100%); border: 1px solid #a86a1a;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, .4); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .55), 0 2px 6px rgba(0, 0, 0, .5);
+  }
+  .btn:active { transform: translateY(1px); filter: brightness(.94); }
+  .btn:disabled { opacity: .55; }
+  .btn.ghost { color: var(--ink); text-shadow: none; background: linear-gradient(rgba(255, 255, 255, .11), rgba(255, 255, 255, .03)); border-color: var(--edge); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12); }
+  .btn.small { padding: 9px; font-size: 15px; margin-bottom: 4px; }
+  .nav { display: flex; gap: 10px; margin-top: 22px; }
+  .nav .btn { flex: 1; }
+  .link { background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px; text-decoration: underline; padding: 8px; }
+  .center { text-align: center; }
+  .err { color: #ff9a8a; font-size: 14px; margin-top: 10px; min-height: 1em; }
+
+  .seg { display: flex; padding: 3px; margin: 0 0 18px; border-radius: 999px; background: rgba(0, 0, 0, .28); border: 1px solid var(--edge); }
+  .seg button { flex: 1; border: 0; background: none; color: var(--muted); padding: 9px; border-radius: 999px; font: inherit; }
+  .seg button.on { color: #3a2208; font-weight: bold; background: linear-gradient(#f7cd85, #d88b25); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5); }
+
+  .source { color: var(--muted); font-size: 14px; margin: 0 0 12px; }
+  .story { padding: 12px 0; border-top: 1px dotted var(--edge); }
+  .story:first-of-type { border-top: 0; padding-top: 0; }
+  .story a { color: var(--ink); font-weight: bold; font-size: 17px; text-decoration: none; }
+  .story p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+  .lights { position: relative; display: flex; justify-content: space-around; height: 46px; padding-top: calc(env(safe-area-inset-top, 0px) + 14px); }
+  .lights::before { content: ""; position: absolute; left: -14px; right: -14px; top: calc(env(safe-area-inset-top, 0px) + 2px); height: 26px; border-bottom: 2px solid #4a3626; border-radius: 0 0 50% 50% / 0 0 100% 100%; }
+  .lights i { position: relative; width: 10px; height: 15px; border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%; background: var(--bulb); box-shadow: 0 0 14px 4px var(--bulb); animation: twinkle 3.4s ease-in-out infinite; }
+  .lights i:nth-child(3n) { --bulb: #f08a7a; animation-delay: -1s; }
+  .lights i:nth-child(3n+1) { --bulb: #ffcf7a; animation-delay: -2s; }
+  .lights i:nth-child(3n+2) { --bulb: #8fd3c4; animation-delay: -.5s; }
+  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+
+  .ff { position: absolute; border-radius: 50%; background: #ffd58a; box-shadow: 0 0 12px 4px rgba(255, 200, 110, .55); opacity: 0; animation: drift ease-in-out infinite; }
+  @keyframes drift { 0% { opacity: 0; transform: translate(0, 0); } 30% { opacity: .9; } 60% { opacity: .5; transform: translate(18px, -26px); } 100% { opacity: 0; transform: translate(-12px, -52px); } }
+
+  .arena { position: relative; height: 320px; border-radius: 14px; overflow: hidden; background: rgba(0, 0, 0, .28); box-shadow: inset 0 2px 8px rgba(0, 0, 0, .5); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+  .bubble { position: absolute; width: 68px; height: 68px; border-radius: 50%; border: 0; box-shadow: inset -6px -8px 14px rgba(0, 0, 0, .25), 0 0 16px rgba(255, 255, 255, .15); }
+  .bubble:active { transform: scale(.85); }
+  .score { text-align: center; font-family: Georgia, serif; font-size: 34px; margin: 12px 0 0; }
+
+  .loading { position: relative; height: 70vh; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: Georgia, serif; font-style: italic; font-size: 20px; overflow: hidden; }
+
+  .vibe { position: fixed; inset: 0; z-index: 50; background: #000; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; animation: rise .4s ease-out; }
+  .vibe video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .vibe .vbg { position: absolute; inset: 0; background: radial-gradient(70% 60% at 30% 25%, rgba(255, 190, 110, .35), transparent 60%), linear-gradient(160deg, #2a1b12, #0d0906); }
+  .vshade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0, 0, 0, .8), transparent 55%, rgba(0, 0, 0, .3)); }
+  .vtext { position: relative; padding: 0 22px 12px; }
+  .vkick { margin: 0; color: #ffe2ad; font-size: 15px; text-shadow: 0 1px 6px #000; }
+  .vtext h2 { font-size: clamp(28px, 8vw, 44px); line-height: 1.1; margin: 4px 0; text-shadow: 0 2px 14px rgba(0, 0, 0, .8); }
+  .vgo { position: relative; width: auto; margin: 8px 22px calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .vcredit { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 14px; z-index: 2; font-size: 11px; color: rgba(255, 255, 255, .75); text-decoration: none; text-shadow: 0 1px 2px #000; }
+  .vwait { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-family: Georgia, serif; font-style: italic; font-size: 20px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .vibe { animation: none; }
+    .lights i, .ff { animation: none; opacity: .7; }
+    .progress i { transition: none; }
+  }
+</style>
+</head>
+<body data-session="morning">
+<div class="progress"><i id="bar"></i></div>
+<div class="wrap" id="page"></div>
+
+<script>
+// Paste your Apps Script web app link between the quotes. Leave it as is to be asked for it in the app.
+const API_URL = 'PASTE_YOUR_WEB_APP_LINK_HERE';
+
+/* ---------- Icon (drawn on the fly for the home screen) ---------- */
+(function () {
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 180;
+    const x = c.getContext('2d');
+    x.fillStyle = '#2a1b12'; x.fillRect(0, 0, 180, 180);
+    x.fillStyle = '#f2b45a'; x.beginPath(); x.arc(90, 92, 48, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#2a1b12'; x.beginPath(); x.arc(114, 78, 42, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#ffe2ad';
+    [[46, 44, 3], [136, 40, 2], [140, 128, 2.5], [40, 132, 2]].forEach((s) => { x.beginPath(); x.arc(s[0], s[1], s[2], 0, Math.PI * 2); x.fill(); });
+    document.querySelector('link[rel="apple-touch-icon"]').href = c.toDataURL('image/png');
+  } catch (e) {}
+})();
+
+/* ---------- Content ---------- */
+const QUOTES = [
+  ['The unexamined life is not worth living.', 'Socrates'],
+  ['Nature does nothing in vain.', 'Aristotle'],
+  ['A journey of a thousand miles begins with a single step.', 'Lao Tzu'],
+  ['He who knows he has enough is rich.', 'Lao Tzu'],
+  ['Learning without thought is labor lost; thought without learning is perilous.', 'Confucius'],
+  ['Men are disturbed, not by things, but by the views which they take of them.', 'Epictetus'],
+  ['We suffer more often in imagination than in reality.', 'Seneca'],
+  ['It is not that we have a short time to live, but that we waste a lot of it.', 'Seneca'],
+  ['Difficulties strengthen the mind, as labor does the body.', 'Seneca'],
+  ['Nothing great was ever achieved without enthusiasm.', 'Ralph Waldo Emerson'],
+  ['Every wall is a door.', 'Ralph Waldo Emerson'],
+  ['Nothing can bring you peace but yourself.', 'Ralph Waldo Emerson'],
+  ['The price of anything is the amount of life you exchange for it.', 'Henry David Thoreau'],
+  ['Not until we are lost do we begin to understand ourselves.', 'Henry David Thoreau'],
+  ['How vain it is to sit down to write when you have not stood up to live.', 'Henry David Thoreau'],
+  ['He who has a why to live can bear almost any how.', 'Friedrich Nietzsche'],
+  ['Life can only be understood backwards; but it must be lived forwards.', 'Soren Kierkegaard'],
+  ['The art of being wise is the art of knowing what to overlook.', 'William James'],
+  ['You cannot step twice into the same river.', 'Heraclitus'],
+  ["All of man's misfortune comes from one thing: not knowing how to sit quietly in a room.", 'Blaise Pascal'],
+  ['Attention is the rarest and purest form of generosity.', 'Simone Weil'],
+  ['In the midst of winter, I found there was, within me, an invincible summer.', 'Albert Camus'],
+  ['Hatred does not cease by hatred, but only by love.', 'The Dhammapada'],
+  ['The greatest thing in the world is to know how to belong to oneself.', 'Michel de Montaigne'],
+  ['Doubt is not a pleasant condition, but certainty is absurd.', 'Voltaire'],
+  ['The limits of my language mean the limits of my world.', 'Ludwig Wittgenstein'],
+  ['It is good to have an end to journey toward; but it is the journey that matters, in the end.', 'Ursula K. Le Guin'],
+  ['The beginning is the most important part of the work.', 'Plato'],
+  ['If you have a garden and a library, you have everything you need.', 'Cicero'],
+  ['The soul becomes dyed with the color of its thoughts.', 'Marcus Aurelius'],
+  ['Very little is needed to make a happy life.', 'Marcus Aurelius'],
+  ['The best revenge is not to be like your enemy.', 'Marcus Aurelius'],
+  ['If it is not right, do not do it; if it is not true, do not say it.', 'Marcus Aurelius'],
+  ['Do not spoil what you have by desiring what you have not.', 'Epicurus'],
+  ['We write to taste life twice, in the moment and in retrospection.', 'Anais Nin']
+];
+
+const Q = {
+  newsThoughts: { title: 'What did you make of the news?', hint: 'Anything that surprised, bothered, or interested you. A sentence is plenty.',
+    inputs: [{ t: 'area', k: 'newsThoughts', ph: 'Write it down...' }] },
+  onMind: { title: "What's on your mind?", hint: 'Get it out of your head and onto the page.',
+    inputs: [{ t: 'mood', k: 'mood', label: 'How are you feeling right now?' }, { t: 'area', k: 'onMind', ph: 'Whatever is on your mind...' }] },
+  goals: { title: 'Three goals for today', hint: 'Big or small. Small ones count.',
+    inputs: [{ t: 'lines', k: 'goals', n: 3, ph: ['The big one', 'Something for you', 'A small win'] }] },
+  appointments: { title: 'What is on your calendar?', hint: 'Add a time if you know it. Leave it blank if the day is open.',
+    inputs: [{ t: 'appts', k: 'appointments' }] },
+  meals: { title: "What's on the menu today?", hint: 'Plan it or just guess. Loose is fine.',
+    inputs: [{ t: 'text', k: 'breakfast', label: 'Breakfast' }, { t: 'text', k: 'lunch', label: 'Lunch' },
+      { t: 'text', k: 'dinner', label: 'Dinner' }, { t: 'text', k: 'snacks', label: 'Snacks' }] },
+  book: { title: 'What book are you reading today?', hint: "Title, and the author if you like. I'll find a mood to match it.",
+    inputs: [{ t: 'text', k: 'book', ph: 'Title and author' }], vibe: { key: 'book', verb: 'Now reading' } },
+  listening: { title: 'What are you listening to?', hint: 'A song, an artist, a podcast, an audiobook.',
+    inputs: [{ t: 'chips', k: 'listeningType', opts: ['Music', 'Podcast', 'Audiobook'] }, { t: 'text', k: 'listening', ph: 'Song and artist, or show name' }],
+    vibe: { key: 'listening', verb: 'Now listening' } },
+  grateful: { title: "Three things you're grateful for", hint: 'Tiny things count.',
+    inputs: [{ t: 'lines', k: 'grateful', n: 3, ph: ['Something small', 'Someone', 'Something from today'] }] },
+  proud: { title: 'What are you proud of today?', hint: 'It does not have to be big.',
+    inputs: [{ t: 'area', k: 'proud', ph: 'Today I...' }] },
+  thoughts: { title: 'Any last thoughts?', hint: 'Anything that did not fit anywhere else.',
+    inputs: [{ t: 'area', k: 'thoughts', ph: 'Write freely...' }] },
+  tomorrowGoals: { title: 'Three goals for tomorrow', hint: 'Give tomorrow a head start.',
+    inputs: [{ t: 'lines', k: 'tomorrowGoals', n: 3, ph: ['The big one', 'Something for you', 'A small win'] }] },
+  bedtime: { title: 'What time are you heading to sleep?', hint: 'Set the intention. Sleep well.',
+    inputs: [{ t: 'time', k: 'bedtime' }] }
+};
+
+const ORDER = {
+  morning: ['welcome', 'news', 'newsThoughts', 'onMind', 'goals', 'appointments', 'meals', 'book', 'listening', 'game'],
+  night: ['welcome', 'news', 'book', 'onMind', 'grateful', 'proud', 'thoughts', 'tomorrowGoals', 'bedtime']
+};
+
+/* ---------- State and helpers ---------- */
+let S = { session: 'morning', data: null, pages: [], i: 0, vals: {}, vibes: {}, game: { pops: 0, t0: 0, secs: 0 } };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function ls(k, v) {
+  try {
+    if (v === undefined) return localStorage.getItem(k) || '';
+    if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+  } catch (e) {}
+  return '';
+}
+function creds() { return { code: ls('daily_code'), name: ls('daily_name'), pin: ls('daily_pin') }; }
+function apiUrl() { return API_URL.indexOf('http') === 0 ? API_URL : ls('daily_url'); }
+function draftKey() { return 'daily_draft_' + creds().name.toLowerCase() + '_' + S.data.date + '_' + S.session; }
+function saveDraft() { ls(draftKey(), JSON.stringify(S.vals)); }
+function readDraft() { try { return JSON.parse(ls(draftKey()) || '{}'); } catch (e) { return {}; } }
+function fmtTime(t) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(t || '');
+  if (!m) return '';
+  const h = Number(m[1]);
+  return ((h + 11) % 12 + 1) + ':' + m[2] + ' ' + (h >= 12 ? 'PM' : 'AM');
+}
+
+async function api(action, extra) {
+  const c = creds();
+  const body = Object.assign({ action: action, code: c.code, name: c.name, pin: c.pin }, extra || {});
+  let d;
+  try {
+    const r = await fetch(apiUrl(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+    d = await r.json();
+  } catch (e) {
+    const err = new Error('net'); err.code = 'net'; throw err;
+  }
+  if (d.error) { const err = new Error(d.error); err.code = d.error; throw err; }
+  return d;
+}
+
+function errText(e) {
+  return ({
+    code: 'That invite code does not match. Check with the person who invited you.',
+    pin: 'That name already has a different passcode. Use the passcode you first picked, or choose another name.',
+    pin_short: 'Use a passcode with at least 4 characters.',
+    name: 'Please use letters or numbers in your name.',
+    net: 'Could not reach the app. Check your connection and the web app link.'
+  })[e.code] || 'Something went wrong. Try again in a minute.';
+}
+
+function fireflies(el, n) {
+  for (let i = 0; i < n; i++) {
+    const s = document.createElement('span');
+    s.className = 'ff';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 100 + '%';
+    s.style.animationDelay = (-Math.random() * 8) + 's';
+    s.style.animationDuration = (6 + Math.random() * 8) + 's';
+    const z = 3 + Math.random() * 5;
+    s.style.width = s.style.height = z + 'px';
+    el.appendChild(s);
+  }
+}
+
+function hero(key) {
+  const s = ((S.data && S.data.scenes) || {})[key];
+  if (s && s.img) {
+    return '<div class="hero" style="background-image:url(\'' + esc(s.img) + '\')"><div class="fade"></div>' +
+      '<a class="credit" href="' + esc(s.link) + '" target="_blank" rel="noopener">Photo by ' + esc(s.credit) + ' on Pexels</a></div>';
+  }
+  return '<div class="hero art"><div class="fade"></div></div>';
+}
+
+/* ---------- Setup and start ---------- */
+function showSetup(msg, keepName) {
+  const c = creds();
+  const needUrl = API_URL.indexOf('http') !== 0;
+  $('bar').style.width = '0';
+  $('page').innerHTML =
+    '<div class="lights">' + '<i></i>'.repeat(9) + '</div><div class="sheet flat" style="margin-top:8px">' +
+    '<h1>Welcome to Daily</h1><p class="hint">Pick a name and a passcode. Use the same ones on any device to get your entries back.</p>' +
+    (needUrl ? '<label for="s-url">Web app link</label><input id="s-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" value="' + esc(ls('daily_url')) + '">' : '') +
+    '<label for="s-code">Invite code</label><input id="s-code" type="text" autocapitalize="off" autocorrect="off" value="' + esc(c.code) + '">' +
+    '<label for="s-name">Your name</label><input id="s-name" type="text" autocomplete="off" value="' + esc(keepName === false ? '' : c.name) + '">' +
+    '<label for="s-pin">Passcode</label><input id="s-pin" type="password" autocomplete="off" value="' + esc(keepName === false ? '' : c.pin) + '">' +
+    '<div class="nav"><button class="btn" onclick="saveSetup()">Come on in</button></div>' +
+    '<div class="err">' + esc(msg || '') + '</div></div>';
+}
+
+function saveSetup() {
+  if ($('s-url')) ls('daily_url', $('s-url').value.trim());
+  ls('daily_code', $('s-code').value.trim());
+  ls('daily_name', $('s-name').value.trim());
+  ls('daily_pin', $('s-pin').value.trim());
+  start();
+}
+
+function switchPerson() {
+  ls('daily_name', null); ls('daily_pin', null);
+  showSetup('', false);
+}
+
+function start() {
+  const c = creds();
+  if (!apiUrl() || !c.code || !c.name || !c.pin) { showSetup(); return; }
+  loadSession(new Date().getHours() < 16 ? 'morning' : 'night');
+}
+
+function showLoading() {
+  $('bar').style.width = '0';
+  $('page').innerHTML = '<div class="loading" id="ld">Lighting the lamp...</div>';
+  fireflies($('ld'), 16);
+}
+
+async function loadSession(session) {
+  S.session = session;
+  document.body.dataset.session = session;
+  showLoading();
+  try {
+    S.data = await api('init', { session: session });
+    S.vals = readDraft();
+    S.pages = ORDER[session].slice();
+    S.i = 0;
+    render();
+  } catch (e) {
+    showSetup(errText(e));
+  }
+}
+
+/* ---------- Rendering ---------- */
+function render() {
+  const id = S.pages[S.i];
+  $('bar').style.width = (S.i / (S.pages.length - 1) * 100) + '%';
+  let html;
+  if (id === 'welcome') html = welcomeHTML();
+  else if (id === 'news') html = newsHTML();
+  else if (id === 'game') html = gameHTML();
+  else html = questionHTML(id);
+  $('page').innerHTML = html;
+  document.querySelectorAll('.art').forEach((a) => fireflies(a, 10));
+  if (id === 'game') spawn();
+  window.scrollTo(0, 0);
+}
+
+function welcomeHTML() {
+  const d = S.data, night = S.session === 'night';
+  const now = new Date();
+  const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 864e5);
+  const q = QUOTES[doy % QUOTES.length];
+  const date = new Date(d.date + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const done = d.done[S.session];
+  return '<div class="lights">' + '<i></i>'.repeat(9) + '</div>' + hero('welcome') +
+    '<div class="sheet">' +
+    '<div class="seg"><button class="' + (night ? '' : 'on') + '" onclick="loadSession(\'morning\')">Morning</button>' +
+    '<button class="' + (night ? 'on' : '') + '" onclick="loadSession(\'night\')">Night</button></div>' +
+    '<h1>' + (night ? 'Good evening' : 'Good morning') + ', ' + esc(d.name) + '</h1>' +
+    '<p class="date">' + esc(date) + '</p>' +
+    '<p class="quote">\u201C' + esc(q[0]) + '\u201D</p><p class="by">' + esc(q[1]) + '</p>' +
+    (d.streak > 0 ? '<p class="streak">' + d.streak + (d.streak === 1 ? ' day' : ' days') + ' in a row. Nice.</p>' : '') +
+    (done
+      ? '<p class="hint" style="margin-top:18px">You already checked in this ' + (night ? 'evening' : 'morning') + '. See you ' + (night ? 'tomorrow' : 'tonight') + '.</p>'
+      : '<div class="nav"><button class="btn" onclick="go(1)">Begin</button></div>') +
+    '<div class="center"><button class="link" onclick="switchPerson()">Not ' + esc(d.name) + '? Switch person</button></div></div>';
+}
+
+function newsHTML() {
+  const d = S.data, night = S.session === 'night';
+  let h = '<div class="spacer"></div><div class="sheet flat"><h1>' + (night ? "Tonight's story" : "This morning's headlines") + '</h1>';
+  if (!d.source) {
+    h += '<p class="hint">Nothing loaded right now. You can keep going.</p>';
+  } else {
+    h += '<p class="source">' + esc(d.source.name) + ' \u00B7 ' + esc(d.source.lean) + '</p>';
+    d.items.slice(0, 5).forEach((it) => {
+      h += '<div class="story"><a href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>' +
+        (it.summary ? '<p>' + esc(it.summary) + '</p>' : '') + '</div>';
+    });
+  }
+  return h + navHTML('Next') + '</div>';
+}
+
+function navHTML(nextLabel, extra) {
+  return '<div class="nav"><button class="btn ghost" onclick="go(-1)">Back</button>' +
+    '<button class="btn" id="nextBtn" onclick="next()">' + nextLabel + '</button></div><div class="err" id="err">' + (extra || '') + '</div>';
+}
+
+function questionHTML(id) {
+  const q = Q[id];
+  const last = S.i === S.pages.length - 1;
+  let h = hero(id) + '<div class="sheet"><h1>' + esc(q.title) + '</h1><p class="hint">' + esc(q.hint) + '</p>';
+  q.inputs.forEach((inp) => { h += inputHTML(inp); });
+  return h + navHTML(last ? 'Save' : 'Next') + '</div>';
+}
+
+function inputHTML(inp) {
+  const v = S.vals, k = inp.k;
+  const lab = inp.label ? '<label for="i-' + k + '">' + esc(inp.label) + '</label>' : '';
+  if (inp.t === 'text') return lab + '<input id="i-' + k + '" data-k="' + k + '" type="text" autocomplete="off" placeholder="' + esc(inp.ph || '') + '" value="' + esc(v[k] || '') + '">';
+  if (inp.t === 'area') return '<textarea id="i-' + k + '" data-k="' + k + '" placeholder="' + esc(inp.ph || '') + '">' + esc(v[k] || '') + '</textarea>';
+  if (inp.t === 'time') return '<input id="i-' + k + '" data-k="' + k + '" type="time" value="' + esc(v[k] || '') + '">';
+  if (inp.t === 'mood') {
+    const faces = ['\uD83D\uDE1E', '\uD83D\uDE15', '\uD83D\uDE10', '\uD83D\uDE42', '\uD83D\uDE04'];
+    return '<label>' + esc(inp.label) + '</label><div class="mood" id="mood">' + faces.map((f, i) =>
+      '<button type="button" class="' + (String(v[k]) === String(i + 1) ? 'on' : '') + '" onclick="setMood(' + (i + 1) + ')" aria-label="Mood ' + (i + 1) + ' of 5">' + f + '</button>').join('') + '</div>';
+  }
+  if (inp.t === 'chips') {
+    return '<div class="chips" id="chips-' + k + '">' + inp.opts.map((o) =>
+      '<button type="button" class="' + (v[k] === o ? 'on' : '') + '" onclick="setChip(\'' + k + '\',\'' + o + '\')">' + o + '</button>').join('') + '</div>';
+  }
+  if (inp.t === 'lines') {
+    const arr = v[k] || [];
+    let h = '';
+    for (let i = 0; i < inp.n; i++) {
+      h += '<div class="line"><span class="num">' + (i + 1) + '</span><input data-k="' + k + '" data-i="' + i + '" type="text" autocomplete="off" placeholder="' + esc(inp.ph[i] || '') + '" value="' + esc(arr[i] || '') + '"></div>';
+    }
+    return h;
+  }
+  if (inp.t === 'appts') {
+    const arr = v[k] || [];
+    const rows = Math.max(2, arr.length);
+    let h = '';
+    for (let i = 0; i < rows; i++) {
+      const a = arr[i] || {};
+      h += '<div class="appt"><input data-k="' + k + '" data-i="' + i + '" data-sub="t" type="time" value="' + esc(a.t || '') + '">' +
+        '<input data-k="' + k + '" data-i="' + i + '" data-sub="w" type="text" autocomplete="off" placeholder="What is it?" value="' + esc(a.w || '') + '"></div>';
+    }
+    return h + (rows < 6 ? '<button type="button" class="btn ghost small" onclick="addAppt()">Add another</button>' : '');
+  }
+  return '';
+}
+
+function setMood(n) {
+  S.vals.mood = String(n); saveDraft();
+  document.querySelectorAll('#mood button').forEach((b, i) => b.classList.toggle('on', i + 1 === n));
+}
+function setChip(k, o) {
+  S.vals[k] = o; saveDraft();
+  document.querySelectorAll('#chips-' + k + ' button').forEach((b) => b.classList.toggle('on', b.textContent === o));
+}
+function addAppt() {
+  collect();
+  const arr = S.vals.appointments = S.vals.appointments || [];
+  while (arr.length < 2) arr.push({});
+  arr.push({});
+  render();
+}
+
+function collect() {
+  document.querySelectorAll('[data-k]').forEach((el) => {
+    const k = el.dataset.k, i = el.dataset.i, sub = el.dataset.sub;
+    if (i === undefined) { S.vals[k] = el.value; return; }
+    const arr = S.vals[k] = S.vals[k] || [];
+    if (sub) { arr[i] = arr[i] || {}; arr[i][sub] = el.value; } else { arr[i] = el.value; }
+  });
+  saveDraft();
+}
+document.addEventListener('input', () => { if (S.data && document.querySelector('[data-k]')) collect(); });
+
+/* ---------- Game ---------- */
+function gameHTML() {
+  S.game = { pops: 0, t0: Date.now(), secs: 0 };
+  return '<div class="spacer"></div><div class="sheet flat"><h1>Take a little break</h1><p class="hint">Pop ten bubbles. That is the whole game.</p>' +
+    '<div class="arena" id="arena"><button class="bubble" id="bubble" aria-label="Pop" onclick="pop()"></button></div>' +
+    '<div class="score" id="score">0</div>' + navHTML('Save') + '</div>';
+}
+function spawn() {
+  const a = $('arena'), b = $('bubble');
+  if (!a || !b) return;
+  b.style.left = Math.random() * (a.clientWidth - 68) + 'px';
+  b.style.top = Math.random() * (a.clientHeight - 68) + 'px';
+  b.style.background = 'hsl(' + Math.floor(Math.random() * 360) + ' 70% 62%)';
+}
+function pop() {
+  const g = S.game;
+  g.pops++;
+  $('score').textContent = g.pops;
+  if (g.pops >= 10) {
+    g.secs = Math.round((Date.now() - g.t0) / 1000);
+    $('bubble').style.display = 'none';
+    $('score').textContent = '10 pops in ' + g.secs + 's';
+  } else { spawn(); }
+}
+
+/* ---------- Navigation ---------- */
+function go(delta) {
+  if (document.querySelector('[data-k]')) collect();
+  S.i = Math.max(0, Math.min(S.pages.length - 1, S.i + delta));
+  render();
+}
+
+async function next() {
+  if (document.querySelector('[data-k]')) collect();
+  const id = S.pages[S.i];
+  const q = Q[id];
+  if (S.i === S.pages.length - 1) { save(); return; }
+  if (q && q.vibe) {
+    const text = (S.vals[q.vibe.key] || '').trim();
+    if (text) {
+      const kind = id === 'book' ? 'book' : String(S.vals.listeningType || 'Music').toLowerCase();
+      await playVibe(kind, text, q.vibe.verb);
+    }
+  }
+  S.i++;
+  render();
+}
+
+/* ---------- Vibe page ---------- */
+function withTimeout(p, ms) {
+  return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+}
+
+function playVibe(kind, text, verb) {
+  return new Promise((resolve) => {
+    const o = document.createElement('div');
+    o.className = 'vibe';
+    o.innerHTML = '<div class="vbg"></div><div class="vwait">Finding the mood...</div>';
+    document.body.appendChild(o);
+    fireflies(o, 16);
+    const key = kind + ':' + text.toLowerCase();
+    const get = S.vibes[key] ? Promise.resolve(S.vibes[key]) : withTimeout(api('vibe', { kind: kind, text: text }), 20000).then((d) => (S.vibes[key] = d));
+    get.catch(() => ({ video: null })).then((d) => {
+      const v = d && d.video;
+      const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+      o.innerHTML = '<div class="vbg"></div>' +
+        (v ? '<video muted loop playsinline preload="auto"' + (reduce ? '' : ' autoplay') + ' poster="' + esc(v.poster || '') + '" src="' + esc(v.url) + '"></video>' : '') +
+        '<div class="vshade"></div>' +
+        (v ? '<a class="vcredit" href="' + esc(v.link) + '" target="_blank" rel="noopener">Video by ' + esc(v.credit) + ' on Pexels</a>' : '') +
+        '<div class="vtext"><p class="vkick">' + esc(verb) + '</p><h2>' + esc(text) + '</h2></div>' +
+        '<button class="btn vgo" id="vgo">Continue</button>';
+      if (!v) fireflies(o, 30);
+      const vid = o.querySelector('video');
+      if (vid) { vid.muted = true; if (!reduce) { const p = vid.play(); if (p && p.catch) p.catch(() => {}); } }
+      $('vgo').onclick = () => { o.remove(); resolve(); };
+    });
+  });
+}
+
+/* ---------- Save ---------- */
+function payload() {
+  const v = S.vals;
+  const join = (a) => (a || []).map((x) => String(x || '').trim()).filter(Boolean).join(' | ');
+  const p = {
+    mood: v.mood || '', book: v.book || '', listeningType: v.listening ? (v.listeningType || '') : '', listening: v.listening || '',
+    goals: join(v.goals), onMind: v.onMind || '', newsThoughts: v.newsThoughts || '',
+    appointments: (v.appointments || []).filter((a) => a && (a.w || '').trim())
+      .map((a) => (a.t ? fmtTime(a.t) + ' ' : '') + a.w.trim()).join(' | '),
+    breakfast: v.breakfast || '', lunch: v.lunch || '', dinner: v.dinner || '', snacks: v.snacks || '',
+    grateful: join(v.grateful), proud: v.proud || '', thoughts: v.thoughts || '',
+    tomorrowGoals: join(v.tomorrowGoals), bedtime: v.bedtime || ''
+  };
+  if (S.session === 'morning') { p.gamePops = S.game.pops; p.gameSeconds = S.game.secs; }
+  return p;
+}
+
+async function save() {
+  const btn = $('nextBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const r = await api('save', { session: S.session, data: payload() });
+    if (r && r.ok) { ls(draftKey(), null); renderDone(); return; }
+    $('err').textContent = (r && r.message) || 'Could not save.';
+  } catch (e) {
+    $('err').textContent = e.code === 'net' ? 'Could not save. Check your connection and try again.' : errText(e);
+  }
+  btn.disabled = false; btn.textContent = 'Save';
+}
+
+function renderDone() {
+  const d = S.data, night = S.session === 'night';
+  const already = d.done.morning || d.done.night;
+  const streak = d.streak + (already ? 0 : 1);
+  d.done[S.session] = true;
+  d.streak = streak;
+  $('bar').style.width = '100%';
+  $('page').innerHTML = hero('done') + '<div class="sheet"><h1>Saved. Nice work.</h1>' +
+    '<p class="hint">See you ' + (night ? 'tomorrow' : 'tonight') + ', ' + esc(d.name) + '. Rest easy.</p>' +
+    '<p class="streak">' + streak + (streak === 1 ? ' day' : ' days') + ' in a row.</p></div>';
+  document.querySelectorAll('.art').forEach((a) => fireflies(a, 10));
+  window.scrollTo(0, 0);
+}
+
+start();
+</script>
+</body>
+</html>
